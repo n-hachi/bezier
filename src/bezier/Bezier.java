@@ -1,7 +1,12 @@
 package bezier;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -42,6 +47,17 @@ public class Bezier extends JComponent{
 		public BezierCanvas() {
 			setPreferredSize(new Dimension(400, 400));
 			setVisible(true);
+			addMouseListener(new MouseAdapter(){
+				public void mouseClicked(MouseEvent e) {
+					drawPoint(e.getPoint());
+				}
+			});
+		}
+		
+		public void drawPoint(Point p) {
+			Graphics2D g2 = (Graphics2D)getGraphics();
+			g2.setColor(Color.BLACK);
+			g2.fillOval((int)p.getX(), (int)p.getY(), 5, 5);
 		}
 	}
 }
