@@ -3,11 +3,13 @@ package bezier;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.image.BufferedImage;
 import java.util.Vector;
 
 import javax.swing.JButton;
@@ -54,11 +56,21 @@ public class Bezier extends JComponent{
 	
 	void addBezierPoint(BezierPoint p) {
 		if(bezier_point_vec_.size() < BASE_DOTS_COUNT) {
-			canvas_.drawPoint(p);
 			bezier_point_vec_.add(p);
+			BufferedImage buf = new BufferedImage(400, 400, BufferedImage.TYPE_3BYTE_BGR);
+			Graphics2D buf_g = buf.createGraphics();
+			buf_g.setBackground(getBackground());
+			buf_g.clearRect(0, 0, 400, 400);
+
+			for(BezierPoint bp : bezier_point_vec_) {
+				bp.drawPoint(buf_g);
+			}
+			Graphics g = getGraphics();
+			g.drawImage(buf,  0,  0,  this);
+
 		}
 	}
-		
+			
 	class BezierCanvas extends JPanel{
 
 		/**
@@ -76,12 +88,8 @@ public class Bezier extends JComponent{
 			});
 		}
 		
-		public void drawPoint(BezierPoint p) {
-			Graphics2D g2 = (Graphics2D)getGraphics();
-			g2.setColor(Color.BLACK);
-			int radius = p.radius_;
-			int diameter = p.radius_ * 2;
-			g2.fillOval((int)p.getX() - radius, (int)p.getY() - radius, diameter, diameter);
+		protected void paintComponent(Graphics g) {
+			super.paintComponent(g);
 		}
 	}
 	
@@ -111,6 +119,11 @@ public class Bezier extends JComponent{
 			radius_ = 10;
 		}
 		
+		public void drawPoint(Graphics2D g) {
+			g.setColor(Color.BLACK);
+			int radius = radius_;
+			int diameter = radius_ * 2;
+			g.fillOval((int)getX() - radius, (int)getY() - radius, diameter, diameter);
+		}
 	}
-	
 }
