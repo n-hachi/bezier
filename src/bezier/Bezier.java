@@ -8,6 +8,7 @@ import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.Vector;
 
 import javax.swing.JButton;
 import javax.swing.JComponent;
@@ -16,7 +17,9 @@ import javax.swing.JPanel;
 
 public class Bezier extends JComponent{
 	
+	private static final int BASE_DOTS_COUNT = 4;
 	private BezierCanvas canvas_;
+	Vector<BezierPoint> bezier_point_vec_;
 	
 	/**
 	 * 
@@ -45,6 +48,15 @@ public class Bezier extends JComponent{
 		add(canvas_, BorderLayout.CENTER);
 		add(button_panel, BorderLayout.PAGE_END);
 		setVisible(true);
+		
+		bezier_point_vec_ = new Vector<BezierPoint>();
+	}
+	
+	void addBezierPoint(BezierPoint p) {
+		if(bezier_point_vec_.size() < BASE_DOTS_COUNT) {
+			canvas_.drawPoint(p);
+			bezier_point_vec_.add(p);
+		}
 	}
 		
 	class BezierCanvas extends JPanel{
@@ -59,7 +71,7 @@ public class Bezier extends JComponent{
 			setVisible(true);
 			addMouseListener(new MouseAdapter(){
 				public void mouseClicked(MouseEvent e) {
-					drawPoint(new BezierPoint(e.getPoint()));
+					Bezier.this.addBezierPoint(new BezierPoint(e.getPoint()));
 				}
 			});
 		}
