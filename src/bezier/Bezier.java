@@ -59,15 +59,17 @@ public class Bezier extends JComponent{
 			setVisible(true);
 			addMouseListener(new MouseAdapter(){
 				public void mouseClicked(MouseEvent e) {
-					drawPoint(e.getPoint());
+					drawPoint(new BezierPoint(e.getPoint()));
 				}
 			});
 		}
 		
-		public void drawPoint(Point p) {
+		public void drawPoint(BezierPoint p) {
 			Graphics2D g2 = (Graphics2D)getGraphics();
 			g2.setColor(Color.BLACK);
-			g2.fillOval((int)p.getX(), (int)p.getY(), 5, 5);
+			int radius = p.radius_;
+			int diameter = p.radius_ * 2;
+			g2.fillOval((int)p.getX() - radius, (int)p.getY() - radius, diameter, diameter);
 		}
 	}
 	
@@ -82,4 +84,21 @@ public class Bezier extends JComponent{
 			setForeground(Color.GRAY);
 		}		
 	}
+	
+	class BezierPoint extends Point{
+
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+		
+		public int radius_ = 10;
+		
+		public BezierPoint(Point p) {
+			super(p);
+			radius_ = 10;
+		}
+		
+	}
+	
 }
