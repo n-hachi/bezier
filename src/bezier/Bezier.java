@@ -12,6 +12,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.util.ListIterator;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.Vector;
 
 import javax.swing.JButton;
@@ -24,6 +26,8 @@ public class Bezier extends JComponent{
 	private static final int BASE_DOTS_COUNT = 4;
 	private BezierCanvas canvas_;
 	Vector<BezierPoint> bezier_point_vec_;
+	private int turn_ = 0;
+	private Timer timer_;
 	
 	/**
 	 * 
@@ -56,12 +60,7 @@ public class Bezier extends JComponent{
 		bezier_point_vec_ = new Vector<BezierPoint>();
 	}
 	
-	void addBezierPoint(BezierPoint p) {
-		if(bezier_point_vec_.size() > BASE_DOTS_COUNT) {
-			return;
-		}
-
-		bezier_point_vec_.add(p);
+	void drawBaseFigure() {
 		for(BezierPoint bp : bezier_point_vec_) {
 			canvas_.drawPoint(bp);
 		}
@@ -71,9 +70,52 @@ public class Bezier extends JComponent{
 			ListIterator<BezierPoint> iter2 = bezier_point_vec_.listIterator(1);
 			while(iter2.hasNext()) {
 				canvas_.drawLine(iter1.next(), iter2.next());
-			}
-			
+			}	
+		}		
+	}
+	
+	void addBezierPoint(BezierPoint p) {
+		if(bezier_point_vec_.size() > BASE_DOTS_COUNT) {
+			return;
 		}
+
+		bezier_point_vec_.add(p);
+		drawBaseFigure();
+		canvas_.repaint();
+	}
+	
+	void startAnimation() {
+		turn_ = 0;
+		timer_ = new Timer();
+		timer_.scheduleAtFixedRate(new TimerTask() {
+			public void run() {
+				update();
+			}
+		}, 0, 50);
+	}
+	
+	void update() {
+		drawBaseFigure();
+		
+		if(turn_ == 0) {
+			turn_++;
+			return;
+		}
+		
+		if(turn_ >= 100) {
+			timer_.cancel();
+		}
+		
+		Vector<BezierPoint> child_vec = new Vector<BezierPoint>();
+		ListIterator<BezierPoint> iter1 = bezier_point_vec_.listIterator(0);
+		ListIterator<BezierPoint> iter2 = bezier_point_vec_.listIterator(1);
+		while(iter2.hasNext()) {
+			BezierPoint child_bp = genChildPoint(iter1.next(), iter2.next(), turn_, 100);
+			canvas_.drawPoint(child_bp);
+			child_vec.addElement(child_bp);
+		}
+		turn_++;
+		
 		canvas_.repaint();
 	}
 			
@@ -129,6 +171,12 @@ public class Bezier extends JComponent{
 		public StartButton() {
 			super("Start");
 			setForeground(Color.GRAY);
+			
+			addMouseListener(new MouseAdapter() {
+				public void mouseClicked(MouseEvent e) {
+					Bezier.this.startAnimation();
+				}
+			});			
 		}		
 	}
 	
@@ -152,5 +200,15 @@ public class Bezier extends JComponent{
 			int diameter = radius_ * 2;
 			g.fillOval((int)getX() - radius, (int)getY() - radius, diameter, diameter);
 		}
+	}
+	
+	BezierPoint genChildPoint(BezierPoint bp1, BezierPoint bp2, int turn, int max) {
+		int p1 = turn;
+		int p2 = max - turn;
+		
+		int x = (int)((bp1.getX() * p2 + bp2.getX() * p1)/max);
+		int y = (int)((bp1.getY() * p2 + bp2.getY() * p1)/max);
+		
+		return new BezierPoint(new Point(x, y));
 	}
 }
