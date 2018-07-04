@@ -10,6 +10,7 @@ import java.awt.Point;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.util.ListIterator;
 import java.util.Timer;
@@ -24,6 +25,11 @@ import javax.swing.JPanel;
 public class Bezier extends JComponent{
 	
 	private static final int BASE_DOTS_COUNT = 4;
+	private static final int RADIUS = 4;
+	private static final int HEIGHT = 600;
+	private static final int WIDTH = 600;
+	private static final int DOTS_COUNT = 50;
+	
 	private BezierCanvas canvas_;
 	Vector<BezierPoint> bezier_point_vec_;
 	Vector<BezierPoint> final_point_vec_;
@@ -52,7 +58,7 @@ public class Bezier extends JComponent{
 		button_panel.setLayout(new GridLayout(1, 1));
 		button_panel.add(start_button);
 		
-		canvas_ = new BezierCanvas();
+		canvas_ = new BezierCanvas(Bezier.WIDTH, Bezier.HEIGHT);
 		setLayout(new BorderLayout());
 		add(canvas_, BorderLayout.CENTER);
 		add(button_panel, BorderLayout.PAGE_END);
@@ -104,7 +110,7 @@ public class Bezier extends JComponent{
 			return;
 		}
 		
-		if(turn_ >= 100) {
+		if(turn_ >= DOTS_COUNT) {
 			timer_.cancel();
 		}
 		
@@ -114,7 +120,7 @@ public class Bezier extends JComponent{
 			ListIterator<BezierPoint> iter1 = point_vec.listIterator(0);
 			ListIterator<BezierPoint> iter2 = point_vec.listIterator(1);
 			while(iter2.hasNext()) {
-				BezierPoint child_bp = genChildPoint(iter1.next(), iter2.next(), turn_, 100);
+				BezierPoint child_bp = genChildPoint(iter1.next(), iter2.next(), turn_, DOTS_COUNT, Bezier.RADIUS);
 				canvas_.drawPoint(child_bp);
 				temp_vec.addElement(child_bp);
 			}
@@ -142,38 +148,39 @@ public class Bezier extends JComponent{
 		 */
 		private static final long serialVersionUID = 1L;
 
-		public BezierCanvas() {
-			setPreferredSize(new Dimension(400, 400));
+		public BezierCanvas(int width, int height) {
+			setPreferredSize(new Dimension(width, height));
 			setVisible(true);
 			addMouseListener(new MouseAdapter(){
 				public void mouseClicked(MouseEvent e) {
-					Bezier.this.addBezierPoint(new BezierPoint(e.getPoint()));
+					Point p = e.getPoint();
+					Bezier.this.addBezierPoint(new BezierPoint(p.getX(), p.getY(), Bezier.RADIUS));
 				}
 			});
 			setDoubleBuffered(true);
-			buf_ = new BufferedImage(400, 400, BufferedImage.TYPE_3BYTE_BGR);
+			buf_ = new BufferedImage(width, height, BufferedImage.TYPE_3BYTE_BGR);
 			buf_g_ = buf_.createGraphics();
 			buf_g_.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 			buf_g_.setBackground(getBackground());
-			buf_g_.clearRect(0, 0, 400, 400);
+			buf_g_.clearRect(0, 0, width, height);
 		}
 		
 		public void drawPoint(BezierPoint bp) {
 			buf_g_.setColor(Color.BLACK);
 			int diameter = bp.radius_ * 2;
-			buf_g_.fillOval(bp.x - bp.radius_, bp.y - bp.radius_, diameter, diameter);
+			buf_g_.fillOval(bp.getRoundX() - bp.radius_, bp.getRoundY() - bp.radius_, diameter, diameter);
 		}
 		
 		public void drawLine(BezierPoint bp1, BezierPoint bp2) {
 			buf_g_.setColor(Color.BLACK);
-			buf_g_.drawLine(bp1.x, bp1.y, bp2.x, bp2.y);
+			buf_g_.drawLine(bp1.getRoundX(), bp1.getRoundY(), bp2.getRoundX(), bp2.getRoundY());
 		}
 		
 		protected void paintComponent(Graphics g) {
 			super.paintComponent(g);
 			g.drawImage(buf_, 0, 0, this);
-			buf_g_.clearRect(0, 0, 400, 400);
-		}
+			buf_g_.clearRect(0, 0, getWidth(), getHeight());
+		}		
 	}
 	
 	class StartButton extends JButton{		
@@ -194,7 +201,7 @@ public class Bezier extends JComponent{
 		}		
 	}
 	
-	class BezierPoint extends Point{
+	class BezierPoint extends Point2D.Double{
 
 		/**
 		 * 
@@ -203,9 +210,9 @@ public class Bezier extends JComponent{
 		
 		public int radius_ = 10;
 		
-		public BezierPoint(Point p) {
-			super(p);
-			radius_ = 10;
+		public BezierPoint(double x, double y, int radius) {
+			super(x, y);
+			radius_ = radius;
 		}
 		
 		public void drawPoint(Graphics2D g) {
@@ -214,15 +221,23 @@ public class Bezier extends JComponent{
 			int diameter = radius_ * 2;
 			g.fillOval((int)getX() - radius, (int)getY() - radius, diameter, diameter);
 		}
+		
+		public int getRoundX() {
+			return (int)Math.round(x);
+		}
+		
+		public int getRoundY() {
+			return (int)Math.round(y);
+		}
 	}
 	
-	BezierPoint genChildPoint(BezierPoint bp1, BezierPoint bp2, int turn, int max) {
+	BezierPoint genChildPoint(BezierPoint bp1, BezierPoint bp2, int turn, int max, int radius) {
 		int p1 = turn;
 		int p2 = max - turn;
 		
-		int x = (int)((bp1.getX() * p2 + bp2.getX() * p1)/max);
-		int y = (int)((bp1.getY() * p2 + bp2.getY() * p1)/max);
+		double x = ((bp1.getX() * p2 + bp2.getX() * p1)/max);
+		double y = ((bp1.getY() * p2 + bp2.getY() * p1)/max);
 		
-		return new BezierPoint(new Point(x, y));
+		return new BezierPoint(x, y, radius);
 	}
 }
