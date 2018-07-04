@@ -77,7 +77,7 @@ public class Bezier extends JComponent{
 			ListIterator<BezierPoint> iter1 = bezier_point_vec_.listIterator(0);
 			ListIterator<BezierPoint> iter2 = bezier_point_vec_.listIterator(1);
 			while(iter2.hasNext()) {
-				canvas_.drawLine(iter1.next(), iter2.next());
+				canvas_.drawLine(iter1.next(), iter2.next(), Color.red);
 			}	
 		}		
 	}
@@ -117,13 +117,28 @@ public class Bezier extends JComponent{
 		Vector<BezierPoint> point_vec = bezier_point_vec_;
 		while(point_vec.size() > 1) {
 			Vector<BezierPoint> temp_vec = new Vector<BezierPoint>();
+			
 			ListIterator<BezierPoint> iter1 = point_vec.listIterator(0);
 			ListIterator<BezierPoint> iter2 = point_vec.listIterator(1);
 			while(iter2.hasNext()) {
-				BezierPoint child_bp = genChildPoint(iter1.next(), iter2.next(), turn_, DOTS_COUNT, Bezier.RADIUS);
+				BezierPoint bp1 = iter1.next();
+				BezierPoint bp2 = iter2.next();
+				
+				// generate child point and draw dots
+				BezierPoint child_bp = genChildPoint(bp1, bp2, turn_, DOTS_COUNT, Bezier.RADIUS);
+								
+				// draw line
+				// To hide the end of the line, draw line before dots
+				canvas_.drawLine(bp1, child_bp, Color.blue);
+				canvas_.drawLine(bp2, child_bp, Color.red);
+				
+				// draw dots
 				canvas_.drawPoint(child_bp);
+				
 				temp_vec.addElement(child_bp);
 			}
+			
+			// preparation for drawing high-order point
 			point_vec = temp_vec;
 			if(temp_vec.size() == 1) {
 				final_point_vec_.addElement(temp_vec.elementAt(0));
@@ -171,8 +186,8 @@ public class Bezier extends JComponent{
 			buf_g_.fillOval(bp.getRoundX() - bp.radius_, bp.getRoundY() - bp.radius_, diameter, diameter);
 		}
 		
-		public void drawLine(BezierPoint bp1, BezierPoint bp2) {
-			buf_g_.setColor(Color.BLACK);
+		public void drawLine(BezierPoint bp1, BezierPoint bp2, Color col) {
+			buf_g_.setColor(col);
 			buf_g_.drawLine(bp1.getRoundX(), bp1.getRoundY(), bp2.getRoundX(), bp2.getRoundY());
 		}
 		
