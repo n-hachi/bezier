@@ -26,6 +26,7 @@ public class Bezier extends JComponent{
 	private static final int BASE_DOTS_COUNT = 4;
 	private BezierCanvas canvas_;
 	Vector<BezierPoint> bezier_point_vec_;
+	Vector<BezierPoint> final_point_vec_;
 	private int turn_ = 0;
 	private Timer timer_;
 	
@@ -58,6 +59,7 @@ public class Bezier extends JComponent{
 		setVisible(true);
 		
 		bezier_point_vec_ = new Vector<BezierPoint>();
+		final_point_vec_ = new Vector<BezierPoint>();
 	}
 	
 	void drawBaseFigure() {
@@ -106,14 +108,26 @@ public class Bezier extends JComponent{
 			timer_.cancel();
 		}
 		
-		Vector<BezierPoint> child_vec = new Vector<BezierPoint>();
-		ListIterator<BezierPoint> iter1 = bezier_point_vec_.listIterator(0);
-		ListIterator<BezierPoint> iter2 = bezier_point_vec_.listIterator(1);
-		while(iter2.hasNext()) {
-			BezierPoint child_bp = genChildPoint(iter1.next(), iter2.next(), turn_, 100);
-			canvas_.drawPoint(child_bp);
-			child_vec.addElement(child_bp);
+		Vector<BezierPoint> point_vec = bezier_point_vec_;
+		while(point_vec.size() > 1) {
+			Vector<BezierPoint> temp_vec = new Vector<BezierPoint>();
+			ListIterator<BezierPoint> iter1 = point_vec.listIterator(0);
+			ListIterator<BezierPoint> iter2 = point_vec.listIterator(1);
+			while(iter2.hasNext()) {
+				BezierPoint child_bp = genChildPoint(iter1.next(), iter2.next(), turn_, 100);
+				canvas_.drawPoint(child_bp);
+				temp_vec.addElement(child_bp);
+			}
+			point_vec = temp_vec;
+			if(temp_vec.size() == 1) {
+				final_point_vec_.addElement(temp_vec.elementAt(0));
+			}
 		}
+		
+		for(BezierPoint bp : final_point_vec_) {
+			canvas_.drawPoint(bp);
+		}
+		
 		turn_++;
 		
 		canvas_.repaint();
