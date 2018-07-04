@@ -25,10 +25,12 @@ import javax.swing.JPanel;
 public class Bezier extends JComponent{
 	
 	private static final int BASE_DOTS_COUNT = 4;
-	private static final int RADIUS = 4;
+	private static final int RADIUS = 3;
+	private static final int FINAL_RADIUS = 5;	
 	private static final int HEIGHT = 600;
 	private static final int WIDTH = 600;
-	private static final int DOTS_COUNT = 50;
+	private static final int MAX_TURN = 50;
+	private static final int PERIOD = 100;
 	
 	private BezierCanvas canvas_;
 	Vector<BezierPoint> bezier_point_vec_;
@@ -68,9 +70,13 @@ public class Bezier extends JComponent{
 		final_point_vec_ = new Vector<BezierPoint>();
 	}
 	
-	void drawBaseFigure() {
+	void drawBaseFigure(boolean drawLine) {
 		for(BezierPoint bp : bezier_point_vec_) {
 			canvas_.drawPoint(bp);
+		}
+		
+		if(!drawLine) {
+			return;
 		}
 		
 		if (bezier_point_vec_.size() >= 2) {
@@ -83,34 +89,36 @@ public class Bezier extends JComponent{
 	}
 	
 	void addBezierPoint(BezierPoint p) {
-		if(bezier_point_vec_.size() > BASE_DOTS_COUNT) {
+		if(bezier_point_vec_.size() >= BASE_DOTS_COUNT) {
 			return;
 		}
 
 		bezier_point_vec_.add(p);
-		drawBaseFigure();
+		drawBaseFigure(true);
 		canvas_.repaint();
 	}
 	
 	void startAnimation() {
 		turn_ = 0;
+		final_point_vec_.clear();
+		
 		timer_ = new Timer();
 		timer_.scheduleAtFixedRate(new TimerTask() {
 			public void run() {
 				update();
 			}
-		}, 0, 50);
+		}, 0, Bezier.PERIOD);
 	}
 	
 	void update() {
-		drawBaseFigure();
+		drawBaseFigure(false);
 		
 		if(turn_ == 0) {
 			turn_++;
 			return;
 		}
 		
-		if(turn_ >= DOTS_COUNT) {
+		if(turn_ >= MAX_TURN) {
 			timer_.cancel();
 		}
 		
@@ -125,7 +133,7 @@ public class Bezier extends JComponent{
 				BezierPoint bp2 = iter2.next();
 				
 				// generate child point and draw dots
-				BezierPoint child_bp = genChildPoint(bp1, bp2, turn_, DOTS_COUNT, Bezier.RADIUS);
+				BezierPoint child_bp = genChildPoint(bp1, bp2, turn_, MAX_TURN, Bezier.RADIUS);
 								
 				// draw line
 				// To hide the end of the line, draw line before dots
@@ -141,13 +149,15 @@ public class Bezier extends JComponent{
 			// preparation for drawing high-order point
 			point_vec = temp_vec;
 			if(temp_vec.size() == 1) {
-				final_point_vec_.addElement(temp_vec.elementAt(0));
+				BezierPoint bp = temp_vec.firstElement();
+				final_point_vec_.addElement(bp);
 			}
 		}
 		
 		for(BezierPoint bp : final_point_vec_) {
 			canvas_.drawPoint(bp);
 		}
+		canvas_.drawPoint(final_point_vec_.lastElement(), Bezier.FINAL_RADIUS);
 		
 		turn_++;
 		
@@ -184,6 +194,12 @@ public class Bezier extends JComponent{
 			buf_g_.setColor(Color.BLACK);
 			int diameter = bp.radius_ * 2;
 			buf_g_.fillOval(bp.getRoundX() - bp.radius_, bp.getRoundY() - bp.radius_, diameter, diameter);
+		}
+		
+		public void drawPoint(BezierPoint bp, int radius) {
+			buf_g_.setColor(Color.BLACK);
+			int diameter = radius * 2;
+			buf_g_.fillOval(bp.getRoundX() - radius, bp.getRoundY() - radius, diameter, diameter);
 		}
 		
 		public void drawLine(BezierPoint bp1, BezierPoint bp2, Color col) {
@@ -243,6 +259,10 @@ public class Bezier extends JComponent{
 		
 		public int getRoundY() {
 			return (int)Math.round(y);
+		}
+		
+		public void resize(int radius) {
+			radius_ = radius;
 		}
 	}
 	
