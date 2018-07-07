@@ -55,10 +55,13 @@ public class Bezier extends JComponent{
 	public Bezier() {
 		StartButton start_button = new StartButton();
 		start_button.setVisible(true);
+		ResetButton reset_button = new ResetButton();
+		reset_button.setVisible(true);
 		JPanel button_panel = new JPanel();
 		button_panel.setVisible(true);
-		button_panel.setLayout(new GridLayout(1, 1));
+		button_panel.setLayout(new GridLayout(1, 2));
 		button_panel.add(start_button);
+		button_panel.add(reset_button);
 		
 		canvas_ = new BezierCanvas(Bezier.WIDTH, Bezier.HEIGHT);
 		setLayout(new BorderLayout());
@@ -158,10 +161,19 @@ public class Bezier extends JComponent{
 			canvas_.drawPoint(bp);
 		}
 		canvas_.drawPoint(final_point_vec_.lastElement(), Bezier.FINAL_RADIUS);
-		
 		turn_++;
-		
 		canvas_.repaint();
+	}
+	
+	void reset() {
+		if(timer_ != null) {
+			timer_.cancel();
+		}
+		bezier_point_vec_.clear();
+		final_point_vec_.clear();
+		turn_ = 0;
+		canvas_.clar();
+		canvas_.repaint();		
 	}
 			
 	class BezierCanvas extends JPanel{
@@ -207,11 +219,16 @@ public class Bezier extends JComponent{
 			buf_g_.drawLine(bp1.getRoundX(), bp1.getRoundY(), bp2.getRoundX(), bp2.getRoundY());
 		}
 		
+		public void clar() {
+			buf_g_.clearRect(0, 0, getWidth(), getHeight());			
+		}
+		
 		protected void paintComponent(Graphics g) {
 			super.paintComponent(g);
 			g.drawImage(buf_, 0, 0, this);
 			buf_g_.clearRect(0, 0, getWidth(), getHeight());
-		}		
+		}
+		
 	}
 	
 	class StartButton extends JButton{		
@@ -227,6 +244,24 @@ public class Bezier extends JComponent{
 			addMouseListener(new MouseAdapter() {
 				public void mouseClicked(MouseEvent e) {
 					Bezier.this.startAnimation();
+				}
+			});			
+		}		
+	}
+	
+	class ResetButton extends JButton{		
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
+
+		public ResetButton() {
+			super("Reset");
+			setForeground(Color.GRAY);
+			
+			addMouseListener(new MouseAdapter() {
+				public void mouseClicked(MouseEvent e) {
+					Bezier.this.reset();
 				}
 			});			
 		}		
