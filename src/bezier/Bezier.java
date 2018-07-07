@@ -27,7 +27,7 @@ public class Bezier extends JComponent{
 	private enum State{
 		Inadequacy,
 		Ready,
-		Runnning,
+		Running,
 	}
 
 	private static final int BASE_DOTS_COUNT = 4;
@@ -44,7 +44,7 @@ public class Bezier extends JComponent{
 	private ResetButton reset_button_ = null;
 	private State state_ = State.Inadequacy;
 	private BezierCanvas canvas_;
-	Vector<BezierPoint> bezier_point_vec_;
+	Vector<BezierPoint> base_point_vec_;
 	Vector<BezierPoint> final_point_vec_;
 	private int turn_ = 0;
 	private Timer timer_;
@@ -62,7 +62,10 @@ public class Bezier extends JComponent{
 		frame.pack();
 		frame.setVisible(true);
 	}
-	
+
+	/**
+	 * Constructor
+	 */
 	public Bezier() {
 		start_button_ = new StartButton();
 		start_button_.setVisible(true);
@@ -78,41 +81,41 @@ public class Bezier extends JComponent{
 		setLayout(new BorderLayout());
 		add(canvas_, BorderLayout.CENTER);
 		add(button_panel, BorderLayout.PAGE_END);
+
 		setVisible(true);
 		
-		bezier_point_vec_ = new Vector<BezierPoint>();
+		base_point_vec_ = new Vector<BezierPoint>();
 		final_point_vec_ = new Vector<BezierPoint>();
 	}
 	
-	void drawBaseFigure(boolean drawLine) {
-		for(BezierPoint bp : bezier_point_vec_) {
+	
+	void drawBasePoints() {
+		for(BezierPoint bp : base_point_vec_) {
 			canvas_.drawPoint(bp);
 		}
-		
-		if(!drawLine) {
-			return;
-		}
-		
-		if (bezier_point_vec_.size() >= 2) {
-			ListIterator<BezierPoint> iter1 = bezier_point_vec_.listIterator(0);
-			ListIterator<BezierPoint> iter2 = bezier_point_vec_.listIterator(1);
+	}
+	
+	void drawBaseLines() {
+		if (base_point_vec_.size() >= 2) {
+			ListIterator<BezierPoint> iter1 = base_point_vec_.listIterator(0);
+			ListIterator<BezierPoint> iter2 = base_point_vec_.listIterator(1);
 			while(iter2.hasNext()) {
 				canvas_.drawLine(iter1.next(), iter2.next(), Color.red);
 			}	
-		}		
+		}				
 	}
 	
 	void addBezierPoint(BezierPoint p) {
-		if(bezier_point_vec_.size() >= BASE_DOTS_COUNT) {
+		if(base_point_vec_.size() >= BASE_DOTS_COUNT) {
 			return;
 		}
 
-		bezier_point_vec_.add(p);
-		drawBaseFigure(true);
+		base_point_vec_.add(p);
+		drawBasePoints();
+		drawBaseLines();
 		
-		if(bezier_point_vec_.size() >= BASE_DOTS_COUNT) {
-			start_button_.BeReady();
-			state_ = State.Ready;
+		if(base_point_vec_.size() >= BASE_DOTS_COUNT) {
+			changeState(State.Ready);
 		}
 		
 		canvas_.repaint();
@@ -125,9 +128,8 @@ public class Bezier extends JComponent{
 		}
 		
 		// if state is Running, start timer
-		else if(state_ == State.Runnning) {
-			state_ = State.Ready;
-			start_button_.BeReady();
+		else if(state_ == State.Running) {
+			changeState(State.Ready);
 			timer_.cancel();
 			return;
 		}
@@ -138,8 +140,7 @@ public class Bezier extends JComponent{
 				turn_ = 0;
 				final_point_vec_.clear();
 			}
-			state_ = State.Runnning;
-			start_button_.BeRunning();
+			changeState(State.Running);
 			timer_ = new Timer();
 			timer_.scheduleAtFixedRate(new TimerTask() {
 				public void run() {
@@ -150,28 +151,15 @@ public class Bezier extends JComponent{
 	}
 	
 	void update() {
-		drawBaseFigure(false);
-		
-		// Before update
-		if(turn_ == 0) {
-			turn_++;
-			return;
-		}
-		
-		// After finish update
-		if(turn_ >= Bezier.MAX_TURN) {
-			timer_.cancel();
-			state_ = State.Ready;
-			start_button_.BeReady();
-		}
+		drawBasePoints();
 		
 		// while update
-		Vector<BezierPoint> point_vec = bezier_point_vec_;
-		while(point_vec.size() > 1) {
-			Vector<BezierPoint> temp_vec = new Vector<BezierPoint>();
+		Vector<BezierPoint> parent_point_vec = base_point_vec_;
+		while(parent_point_vec.size() > 1) {
+			Vector<BezierPoint> child_point_vec = new Vector<BezierPoint>();
 			
-			ListIterator<BezierPoint> iter1 = point_vec.listIterator(0);
-			ListIterator<BezierPoint> iter2 = point_vec.listIterator(1);
+			ListIterator<BezierPoint> iter1 = parent_point_vec.listIterator(0);
+			ListIterator<BezierPoint> iter2 = parent_point_vec.listIterator(1);
 			while(iter2.hasNext()) {
 				BezierPoint bp1 = iter1.next();
 				BezierPoint bp2 = iter2.next();
@@ -179,43 +167,70 @@ public class Bezier extends JComponent{
 				// generate child point and draw dots
 				BezierPoint child_bp = genChildPoint(bp1, bp2, turn_, MAX_TURN, Bezier.RADIUS);
 								
-				// draw line
+				// draw line and point
 				// To hide the end of the line, draw line before dots
 				canvas_.drawLine(bp1, child_bp, Color.blue);
 				canvas_.drawLine(bp2, child_bp, Color.red);
-				
-				// draw dots
 				canvas_.drawPoint(child_bp);
 				
-				temp_vec.addElement(child_bp);
+				child_point_vec.addElement(child_bp);
 			}
 			
-			// preparation for drawing high-order point
-			point_vec = temp_vec;
-			if(temp_vec.size() == 1) {
-				BezierPoint bp = temp_vec.firstElement();
+			// At next loop, generated child points beocme more higher degree points' parent.
+			parent_point_vec = child_point_vec;
+			// if child_point_vec.size equals 1, this point is the highest degree point.
+			if(child_point_vec.size() == 1) {
+				BezierPoint bp = child_point_vec.firstElement();
 				final_point_vec_.addElement(bp);
 			}
 		}
 		
+		// draw all highest_degree points already generated.
 		for(BezierPoint bp : final_point_vec_) {
 			canvas_.drawPoint(bp);
 		}
+		// draw latest point with more large size.
 		canvas_.drawPoint(final_point_vec_.lastElement(), Bezier.FINAL_RADIUS);
 		turn_++;
+		
+		// When loop max time, stop timer.
+		if(turn_ > Bezier.MAX_TURN) {
+			changeState(State.Ready);
+			timer_.cancel();
+		}
+		
 		canvas_.repaint();
 	}
 	
 	void reset() {
 		if(timer_ != null) {
 			timer_.cancel();
+			timer_ = null;
 		}
-		start_button_.BeInadequate();
-		bezier_point_vec_.clear();
+		changeState(State.Inadequacy);
+		base_point_vec_.clear();
 		final_point_vec_.clear();
 		turn_ = 0;
-		canvas_.clar();
+		canvas_.claer();
 		canvas_.repaint();		
+	}
+	
+	void changeState(Bezier.State new_state) {
+		state_ = new_state;
+		switch(new_state) {
+		case Inadequacy:
+			start_button_.BeInadequate();
+			break;
+		case Ready:
+			start_button_.BeReady();
+			break;
+		case Running:
+			start_button_.BeRunning();
+			break;
+		default:
+			break;
+			
+		}
 	}
 
 	class BezierCanvas extends JPanel{
@@ -261,7 +276,7 @@ public class Bezier extends JComponent{
 			buf_g_.drawLine(bp1.getRoundX(), bp1.getRoundY(), bp2.getRoundX(), bp2.getRoundY());
 		}
 		
-		public void clar() {
+		public void claer() {
 			buf_g_.clearRect(0, 0, getWidth(), getHeight());			
 		}
 		
