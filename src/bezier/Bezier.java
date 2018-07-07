@@ -24,6 +24,12 @@ import javax.swing.JPanel;
 
 public class Bezier extends JComponent{
 	
+	private enum State{
+		Inadequacy,
+		Ready,
+		Runnning,
+	}
+
 	private static final int BASE_DOTS_COUNT = 4;
 	private static final int RADIUS = 3;
 	private static final int FINAL_RADIUS = 5;	
@@ -31,7 +37,12 @@ public class Bezier extends JComponent{
 	private static final int WIDTH = 600;
 	private static final int MAX_TURN = 50;
 	private static final int PERIOD = 100;
+	static Color DISABLE_COLOR = Color.gray;
+	static Color ENABLE_COLOR = Color.BLACK;
 	
+	private StartButton start_button_ = null;
+	private ResetButton reset_button_ = null;
+	private State state_ = State.Inadequacy;
 	private BezierCanvas canvas_;
 	Vector<BezierPoint> bezier_point_vec_;
 	Vector<BezierPoint> final_point_vec_;
@@ -53,15 +64,15 @@ public class Bezier extends JComponent{
 	}
 	
 	public Bezier() {
-		StartButton start_button = new StartButton();
-		start_button.setVisible(true);
-		ResetButton reset_button = new ResetButton();
-		reset_button.setVisible(true);
+		start_button_ = new StartButton();
+		start_button_.setVisible(true);
+		reset_button_ = new ResetButton();
+		reset_button_.setVisible(true);
 		JPanel button_panel = new JPanel();
 		button_panel.setVisible(true);
 		button_panel.setLayout(new GridLayout(1, 2));
-		button_panel.add(start_button);
-		button_panel.add(reset_button);
+		button_panel.add(start_button_);
+		button_panel.add(reset_button_);
 		
 		canvas_ = new BezierCanvas(Bezier.WIDTH, Bezier.HEIGHT);
 		setLayout(new BorderLayout());
@@ -98,33 +109,63 @@ public class Bezier extends JComponent{
 
 		bezier_point_vec_.add(p);
 		drawBaseFigure(true);
+		
+		if(bezier_point_vec_.size() >= BASE_DOTS_COUNT) {
+			start_button_.BeReady();
+			state_ = State.Ready;
+		}
+		
 		canvas_.repaint();
 	}
 	
-	void startAnimation() {
-		turn_ = 0;
-		final_point_vec_.clear();
+	void toggleState() {
+		// if state is inadequacy, nothing to do
+		if(state_ == State.Inadequacy) {
+			return;
+		}
 		
-		timer_ = new Timer();
-		timer_.scheduleAtFixedRate(new TimerTask() {
-			public void run() {
-				update();
+		// if state is Running, start timer
+		else if(state_ == State.Runnning) {
+			state_ = State.Ready;
+			start_button_.BeReady();
+			timer_.cancel();
+			return;
+		}
+		
+		// if state_ is Ready(in other words, neither inadequacy anor Running) start timer.
+		else {
+			if(turn_ >= Bezier.MAX_TURN) {
+				turn_ = 0;
+				final_point_vec_.clear();
 			}
-		}, 0, Bezier.PERIOD);
+			state_ = State.Runnning;
+			start_button_.BeRunning();
+			timer_ = new Timer();
+			timer_.scheduleAtFixedRate(new TimerTask() {
+				public void run() {
+					update();
+				}
+			}, 0, Bezier.PERIOD);
+		}
 	}
 	
 	void update() {
 		drawBaseFigure(false);
 		
+		// Before update
 		if(turn_ == 0) {
 			turn_++;
 			return;
 		}
 		
-		if(turn_ >= MAX_TURN) {
+		// After finish update
+		if(turn_ >= Bezier.MAX_TURN) {
 			timer_.cancel();
+			state_ = State.Ready;
+			start_button_.BeReady();
 		}
 		
+		// while update
 		Vector<BezierPoint> point_vec = bezier_point_vec_;
 		while(point_vec.size() > 1) {
 			Vector<BezierPoint> temp_vec = new Vector<BezierPoint>();
@@ -169,13 +210,14 @@ public class Bezier extends JComponent{
 		if(timer_ != null) {
 			timer_.cancel();
 		}
+		start_button_.BeInadequate();
 		bezier_point_vec_.clear();
 		final_point_vec_.clear();
 		turn_ = 0;
 		canvas_.clar();
 		canvas_.repaint();		
 	}
-			
+
 	class BezierCanvas extends JPanel{
 		BufferedImage buf_;
 		Graphics2D buf_g_;
@@ -239,14 +281,30 @@ public class Bezier extends JComponent{
 
 		public StartButton() {
 			super("Start");
-			setForeground(Color.GRAY);
+			setForeground(Bezier.DISABLE_COLOR);
 			
 			addMouseListener(new MouseAdapter() {
 				public void mouseClicked(MouseEvent e) {
-					Bezier.this.startAnimation();
+					Bezier.this.toggleState();
 				}
 			});			
-		}		
+		}
+		
+		void BeInadequate() {
+			setForeground(Bezier.DISABLE_COLOR);
+			setText("Ready");
+		}
+		
+		void BeReady() {
+			setForeground(Bezier.ENABLE_COLOR);
+			setText("Ready");
+		}
+		
+		void BeRunning() {
+			setForeground(Bezier.ENABLE_COLOR);
+			setText("Stop");
+		}
+
 	}
 	
 	class ResetButton extends JButton{		
@@ -257,14 +315,14 @@ public class Bezier extends JComponent{
 
 		public ResetButton() {
 			super("Reset");
-			setForeground(Color.GRAY);
+			setForeground(Bezier.ENABLE_COLOR);
 			
 			addMouseListener(new MouseAdapter() {
 				public void mouseClicked(MouseEvent e) {
 					Bezier.this.reset();
 				}
 			});			
-		}		
+		}
 	}
 	
 	class BezierPoint extends Point2D.Double{
